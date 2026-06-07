@@ -1,0 +1,2 @@
+id,user_id,birth_date,gender,blood_type,weight_kg,height_cm,has_diabetes,has_hypertension,has_allergy,has_skin_disease,has_immune_disease,has_bleeding_disorder,is_pregnant,allergy_detail,current_medications,chronic_disease_detail,created_at,updated_at
+1,1,2007-05-15,male,O,60.00,175.00,1,0,1,0,0,0,0,แพ้ยา Penicillin,ไม่มี,มีเบาหวานและภูมิแพ้,2026-06-06 10:17:13,2026-06-06 10:17:13

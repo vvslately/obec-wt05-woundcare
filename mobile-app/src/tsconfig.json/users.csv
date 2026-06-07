@@ -1,0 +1,2 @@
+id,full_name,username,email,phone,password_hash,avatar_url,role,status,email_verified_at,phone_verified_at,last_login_at,created_at,updated_at
+1,Mood Quartz,moodquartz,mood@example.com,0812345678,$2b$10$REPLACE_WITH_REAL_HASH,,user,active,,,,2026-06-06 10:17:13,2026-06-06 10:17:13

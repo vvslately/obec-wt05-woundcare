@@ -1,0 +1,2 @@
+id,user_id,language,theme,push_notification,email_notification,sms_notification,allow_location,allow_health_data_storage,allow_ai_analysis_history,created_at,updated_at
+1,1,th,light,1,0,0,1,1,1,2026-06-06 10:17:13,2026-06-06 10:17:13

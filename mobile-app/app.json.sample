@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "Obec Thief Detector",
+    "slug": "obec-thief-detector",
+    "scheme": "obec-thief-detector",
+    "platforms": ["ios", "android", "web"],
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#ffffff"
+      }
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "extra": {
+      "BACKEND_URL": "http://localhost:4000",
+      "USER_ID": 1
+    }
+  }
+}
+

@@ -1,0 +1,6 @@
+id,user_id,consent_type,is_accepted,version,accepted_at,revoked_at
+1,1,terms,1,1.0,2026-06-06 10:17:13,
+2,1,privacy_policy,1,1.0,2026-06-06 10:17:13,
+3,1,health_data_storage,1,1.0,2026-06-06 10:17:13,
+4,1,ai_analysis,1,1.0,2026-06-06 10:17:13,
+5,1,location_access,1,1.0,2026-06-06 10:17:13,
