@@ -51,6 +51,8 @@ export type HospitalItem = {
   name: string;
   address: string | null;
   phone: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   distanceKm: number;
   etaMinutes: number;
 };
@@ -159,6 +161,8 @@ export const DEMO_HOSPITALS: HospitalItem[] = [
     name: "รพ. ศิริราช",
     address: "2 ถนนวังหลัง แขวงศิริราช เขตบางกอกน้อย กรุงเทพมหานคร",
     phone: "02-419-7000",
+    latitude: 13.7583,
+    longitude: 100.4853,
     distanceKm: 2.4,
     etaMinutes: 8
   },
@@ -167,6 +171,8 @@ export const DEMO_HOSPITALS: HospitalItem[] = [
     name: "รพ. สมิติเวช สุขุมวิท",
     address: "133 ถนนสุขุมวิท 49 แขวงคลองตันเหนือ เขตวัฒนา กรุงเทพมหานคร",
     phone: "02-022-2222",
+    latitude: 13.7236,
+    longitude: 100.5776,
     distanceKm: 4.8,
     etaMinutes: 15
   },
@@ -175,6 +181,8 @@ export const DEMO_HOSPITALS: HospitalItem[] = [
     name: "รพ. กรุงเทพคริสเตียน",
     address: "124 ถนนสีลม แขวงสุริยวงศ์ เขตบางรัก กรุงเทพมหานคร",
     phone: "02-235-1000",
+    latitude: 13.7266,
+    longitude: 100.5347,
     distanceKm: 6.1,
     etaMinutes: 19
   }

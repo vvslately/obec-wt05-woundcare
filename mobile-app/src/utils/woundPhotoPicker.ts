@@ -63,5 +63,33 @@ export async function pickWoundPhotoFromGallery(): Promise<string | null> {
 }
 
 export async function cropWoundPhotoFromGallery(): Promise<string | null> {
-  return pickWoundPhotoFromGallery();
+  if (!(await ensureLibraryPermission())) return null;
+
+  const result = await ImagePicker.launchImageLibraryAsync({
+    ...pickerOptions,
+    allowsEditing: true
+  });
+  if (result.canceled || !result.assets[0]?.uri) return null;
+
+  return result.assets[0].uri;
+}
+
+export function showPhotoEditOptions(handlers: {
+  onRetake: () => void;
+  onPickFromGallery: () => void;
+  onCrop: () => void;
+}) {
+  Alert.alert("แก้ไขรูปแผล", "เลือกวิธีแก้ไขรูปที่เลือก", [
+    { text: "ถ่ายใหม่", onPress: handlers.onRetake },
+    { text: "เลือกจากคลัง", onPress: handlers.onPickFromGallery },
+    { text: "ครอบรูปใหม่", onPress: handlers.onCrop },
+    { text: "ยกเลิก", style: "cancel" }
+  ]);
+}
+
+export function confirmDeletePhoto(onConfirm: () => void) {
+  Alert.alert("ลบรูปแผล", "ต้องการลบรูปนี้ใช่หรือไม่?", [
+    { text: "ยกเลิก", style: "cancel" },
+    { text: "ลบ", style: "destructive", onPress: onConfirm }
+  ]);
 }

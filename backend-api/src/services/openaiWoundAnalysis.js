@@ -16,7 +16,7 @@ function buildUserContent(form, photos) {
       type: "image_url",
       image_url: {
         url: `data:${mimeType};base64,${photo.data}`,
-        detail: "low"
+        detail: "high"
       }
     });
   }

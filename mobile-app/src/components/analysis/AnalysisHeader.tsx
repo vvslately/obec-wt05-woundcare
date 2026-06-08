@@ -76,8 +76,8 @@ const styles = StyleSheet.create({
   title: {
     flex: 1,
     textAlign: "center",
-    fontSize: 17,
-    fontWeight: "700",
+    fontSize: 18,
+    fontWeight: "800",
     color: colors.primary,
     marginHorizontal: spacing.sm
   }

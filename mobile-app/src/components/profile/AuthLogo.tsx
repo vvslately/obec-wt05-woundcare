@@ -28,15 +28,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 10,
-    marginBottom: 24
+    gap: 14,
+    marginBottom: 28
   },
   logo: {
-    width: 40,
-    height: 40
+    width: 60,
+    height: 60
   },
   title: {
-    fontSize: 24,
+    fontSize: 34,
     fontWeight: "800"
   },
   brand: {

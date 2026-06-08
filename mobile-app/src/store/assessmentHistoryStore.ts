@@ -16,13 +16,18 @@ export type AssessmentRecord = {
   result: AnalysisResultData;
   photos: string[];
   aiSource: string | null;
+  aiModel?: string | null;
+  aiNote?: string | null;
 };
 
 type AssessmentHistoryState = {
   items: AssessmentRecord[];
   isHydrated: boolean;
   hydrate: () => Promise<void>;
+  refresh: () => Promise<void>;
   addRecord: (input: Omit<AssessmentRecord, "id" | "createdAt"> & { id?: number }) => Promise<void>;
+  updateRecordPhotos: (id: number, photos: string[]) => Promise<void>;
+  removeRecord: (id: number) => Promise<void>;
   getLatest: () => AssessmentRecord | null;
 };
 
@@ -46,8 +51,19 @@ export const useAssessmentHistoryStore = create<AssessmentHistoryState>((set, ge
   isHydrated: false,
 
   hydrate: async () => {
-    const items = await readStorage();
-    set({ items, isHydrated: true });
+    if (get().isHydrated) {
+      return;
+    }
+    await get().refresh();
+  },
+
+  refresh: async () => {
+    try {
+      const items = await readStorage();
+      set({ items, isHydrated: true });
+    } catch {
+      set({ isHydrated: true });
+    }
   },
 
   addRecord: async (input) => {
@@ -61,15 +77,55 @@ export const useAssessmentHistoryStore = create<AssessmentHistoryState>((set, ge
       form: input.form,
       result: input.result,
       photos: input.photos,
-      aiSource: input.aiSource
+      aiSource: input.aiSource,
+      aiModel: input.aiModel ?? null,
+      aiNote: input.aiNote ?? null
     };
 
     const next = [record, ...get().items.filter((item) => item.id !== record.id)].slice(
       0,
       MAX_ITEMS
     );
-    await writeStorage(next);
+
     set({ items: next, isHydrated: true });
+
+    try {
+      await writeStorage(next);
+    } catch {
+      // Keep in-memory history even if persistence fails.
+    }
+  },
+
+  updateRecordPhotos: async (id, photos) => {
+    const next = get().items.map((item) =>
+      item.id === id
+        ? {
+            ...item,
+            photos,
+            photoUri: photos[0] ?? null
+          }
+        : item
+    );
+
+    set({ items: next, isHydrated: true });
+
+    try {
+      await writeStorage(next);
+    } catch {
+      // Keep in-memory history even if persistence fails.
+    }
+  },
+
+  removeRecord: async (id) => {
+    const next = get().items.filter((item) => item.id !== id);
+
+    set({ items: next, isHydrated: true });
+
+    try {
+      await writeStorage(next);
+    } catch {
+      // Keep in-memory history even if persistence fails.
+    }
   },
 
   getLatest: () => get().items[0] ?? null

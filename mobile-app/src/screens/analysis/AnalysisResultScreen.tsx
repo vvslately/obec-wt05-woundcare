@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import {
   Pressable,
   StyleSheet,
@@ -11,6 +11,8 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
 import { ScreenHeader } from "../../components/common/ScreenHeader";
 import { ScreenShell } from "../../components/common/ScreenShell";
+import { AiMetaBadge } from "../../components/analysis/AiMetaBadge";
+import { WoundExamSummary } from "../../components/analysis";
 import { useScreenLayout } from "../../hooks/useScreenLayout";
 import type { AnalysisStackParamList } from "../../navigation/analysisTypes";
 import { setTabTransition } from "../../navigation/tabTransition";
@@ -18,6 +20,7 @@ import { useAnalysisStore } from "../../store/analysisStore";
 import { colors } from "../../theme/colors";
 import { radius, spacing } from "../../theme/spacing";
 import { DEMO_ANALYSIS } from "../../types/analysis";
+import { confirmDeletePhoto } from "../../utils/woundPhotoPicker";
 
 function RiskRing({ score, size }: { score: number; size: number }) {
   const inner = Math.round(size * 0.78);
@@ -83,9 +86,21 @@ export function AnalysisResultScreen() {
     useNavigation<NativeStackNavigationProp<AnalysisStackParamList>>();
   const { width, horizontal } = useScreenLayout();
   const result = useAnalysisStore((s) => s.result) || DEMO_ANALYSIS;
+  const form = useAnalysisStore((s) => s.form);
+  const photos = useAnalysisStore((s) => s.photos);
+  const removePhotoAt = useAnalysisStore((s) => s.removePhotoAt);
+  const aiSource = useAnalysisStore((s) => s.aiSource);
   const aiNote = useAnalysisStore((s) => s.aiNote);
+  const aiModel = useAnalysisStore((s) => s.aiModel);
   const ringSize = Math.min(160, Math.max(120, width - horizontal * 2 - spacing.xl));
   const findingWidth = (width - horizontal * 2 - spacing.sm) / 2 - spacing.xs;
+
+  const handleDeletePhoto = useCallback(
+    (index: number) => {
+      confirmDeletePhoto(() => removePhotoAt(index));
+    },
+    [removePhotoAt]
+  );
 
   return (
     <>
@@ -95,7 +110,13 @@ export function AnalysisResultScreen() {
           <ScreenHeader
             title="ผลวิเคราะห์เบื้องต้น"
             onBack={() => navigation.goBack()}
-            onInfoPress={() => {}}
+            rightElement={
+              <AiMetaBadge
+                aiSource={aiSource}
+                aiModel={aiModel}
+                aiNote={aiNote}
+              />
+            }
           />
         }
       >
@@ -109,6 +130,14 @@ export function AnalysisResultScreen() {
             <Text style={styles.fallbackText}>{aiNote}</Text>
           </View>
         ) : null}
+
+        <WoundExamSummary
+          form={form}
+          photos={photos}
+          aiSource={aiSource}
+          editablePhotos
+          onDeletePhoto={handleDeletePhoto}
+        />
 
         <View style={styles.alertBox}>
           <Ionicons name="warning" size={20} color={colors.notification} />
@@ -155,14 +184,45 @@ export function AnalysisResultScreen() {
           <Text style={styles.noteText}>{result.warningNote}</Text>
         </View>
 
+        {result.emergencyWarnings.length > 0 ? (
+          <>
+            <Text style={styles.sectionTitle}>ควรพบแพทย์ทันที หากมี</Text>
+            <View style={styles.emergencyBox}>
+              {result.emergencyWarnings.map((item) => (
+                <View key={item} style={styles.emergencyRow}>
+                  <Ionicons
+                    name="alert-circle-outline"
+                    size={16}
+                    color={colors.notification}
+                  />
+                  <Text style={styles.emergencyText}>{item}</Text>
+                </View>
+              ))}
+            </View>
+          </>
+        ) : null}
+
+        <Text style={styles.sectionTitle}>การปฐมพยาบาลเบื้องต้น</Text>
+        {result.firstAid.map((step) => (
+          <View key={step.step} style={styles.stepCard}>
+            <View style={styles.stepIcon}>
+              <Text style={styles.stepNumber}>{step.step}</Text>
+            </View>
+            <View style={styles.stepBody}>
+              <Text style={styles.stepTitle}>{step.title}</Text>
+              <Text style={styles.stepDesc}>{step.description}</Text>
+            </View>
+          </View>
+        ))}
+
         <Pressable
           style={styles.primaryBtn}
           onPress={() => {
             setTabTransition(2);
-            navigation.getParent()?.navigate("Advice");
+            navigation.getParent()?.navigate("Hospital");
           }}
         >
-          <Text style={styles.primaryBtnText}>ดูการปฐมพยาบาลเบื้องต้น</Text>
+          <Text style={styles.primaryBtnText}>ไปโรงพยาบาลใกล้ฉัน</Text>
         </Pressable>
       </ScreenShell>
     </>
@@ -275,6 +335,58 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg
   },
   noteText: { fontSize: 13, color: colors.cautionText, lineHeight: 20 },
+  emergencyBox: {
+    backgroundColor: colors.warningBg,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.warningBorder,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+    gap: spacing.sm
+  },
+  emergencyRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: spacing.sm
+  },
+  emergencyText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 20,
+    color: colors.warningText,
+    fontWeight: "600"
+  },
+  stepCard: {
+    flexDirection: "row",
+    gap: spacing.md,
+    backgroundColor: colors.card,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border
+  },
+  stepIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.statusCardBg,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  stepNumber: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: colors.brand
+  },
+  stepBody: { flex: 1, minWidth: 0 },
+  stepTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: colors.primary,
+    marginBottom: spacing.xs
+  },
+  stepDesc: { fontSize: 13, color: colors.textSecondary, lineHeight: 20 },
   primaryBtn: {
     backgroundColor: colors.brand,
     borderRadius: radius.md,

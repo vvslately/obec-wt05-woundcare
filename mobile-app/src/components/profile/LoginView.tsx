@@ -113,23 +113,6 @@ export function LoginView({ onGoRegister }: LoginViewProps) {
           )}
         </Pressable>
 
-        <View style={styles.dividerRow}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>หรือเข้าสู่ระบบด้วย</Text>
-          <View style={styles.dividerLine} />
-        </View>
-
-        <View style={styles.socialRow}>
-          <Pressable style={styles.socialBtn} disabled={loading}>
-            <Text style={styles.socialIcon}>G</Text>
-            <Text style={styles.socialText}>Google</Text>
-          </Pressable>
-          <Pressable style={styles.socialBtn} disabled={loading}>
-            <Ionicons name="logo-apple" size={18} color={colors.primary} />
-            <Text style={styles.socialText}>Apple</Text>
-          </Pressable>
-        </View>
-
         <Pressable style={styles.switchLink} onPress={onGoRegister}>
           <Text style={styles.switchText}>
             ยังไม่มีบัญชี? <Text style={styles.link}>สมัครสมาชิก</Text>
@@ -144,7 +127,7 @@ export function LoginView({ onGoRegister }: LoginViewProps) {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: colors.background
+    backgroundColor: "transparent"
   },
   flex: {
     flex: 1
@@ -156,13 +139,15 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: "800",
     color: colors.brand,
-    marginBottom: 8
+    marginBottom: 8,
+    textAlign: "center"
   },
   subheading: {
     fontSize: 14,
     lineHeight: 22,
     color: colors.textSecondary,
-    marginBottom: 24
+    marginBottom: 24,
+    textAlign: "center"
   },
   field: {
     marginBottom: 12
@@ -203,47 +188,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
     color: colors.card
-  },
-  dividerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    marginVertical: 24
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: colors.border
-  },
-  dividerText: {
-    fontSize: 12,
-    color: colors.textSecondary
-  },
-  socialRow: {
-    flexDirection: "row",
-    gap: 12
-  },
-  socialBtn: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 14,
-    paddingVertical: 14
-  },
-  socialIcon: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#EA4335"
-  },
-  socialText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.primary
   },
   switchLink: {
     marginTop: 24,

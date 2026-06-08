@@ -15,6 +15,7 @@ type ScreenShellProps = {
   header?: React.ReactNode;
   footer?: React.ReactNode;
   scroll?: boolean;
+  withTabBarInset?: boolean;
   children: React.ReactNode;
   contentStyle?: StyleProp<ViewStyle>;
   scrollProps?: Omit<ScrollViewProps, "contentContainerStyle" | "children">;
@@ -24,11 +25,12 @@ export function ScreenShell({
   header,
   footer,
   scroll = true,
+  withTabBarInset = true,
   children,
   contentStyle,
   scrollProps
 }: ScreenShellProps) {
-  const { horizontal, scrollBottom } = useScreenLayout();
+  const { horizontal, scrollBottom } = useScreenLayout({ withTabBar: withTabBarInset });
 
   return (
     <View style={styles.root}>

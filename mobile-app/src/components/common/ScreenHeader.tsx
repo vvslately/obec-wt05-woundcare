@@ -10,9 +10,15 @@ type ScreenHeaderProps = {
   title: string;
   onBack?: () => void;
   onInfoPress?: () => void;
+  rightElement?: React.ReactNode;
 };
 
-export function ScreenHeader({ title, onBack, onInfoPress }: ScreenHeaderProps) {
+export function ScreenHeader({
+  title,
+  onBack,
+  onInfoPress,
+  rightElement
+}: ScreenHeaderProps) {
   const { horizontal } = useScreenLayout();
 
   return (
@@ -28,22 +34,19 @@ export function ScreenHeader({ title, onBack, onInfoPress }: ScreenHeaderProps) 
         <Text style={styles.title} numberOfLines={1}>
           {title}
         </Text>
-        <Pressable
-          style={styles.sideBtn}
-          hitSlop={8}
-          onPress={onInfoPress}
-          disabled={!onInfoPress}
-        >
-          {onInfoPress ? (
+        {rightElement ? (
+          <View style={styles.rightSlot}>{rightElement}</View>
+        ) : onInfoPress ? (
+          <Pressable style={styles.sideBtn} hitSlop={8} onPress={onInfoPress}>
             <Ionicons
               name="information-circle-outline"
               size={24}
               color={colors.primary}
             />
-          ) : (
-            <View style={styles.sideSpacer} />
-          )}
-        </Pressable>
+          </Pressable>
+        ) : (
+          <View style={styles.sideSpacer} />
+        )}
       </View>
     </SafeAreaView>
   );
@@ -72,11 +75,17 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36
   },
+  rightSlot: {
+    minWidth: 36,
+    maxWidth: 104,
+    alignItems: "flex-end",
+    justifyContent: "center"
+  },
   title: {
     flex: 1,
     textAlign: "center",
-    fontSize: 17,
-    fontWeight: "700",
+    fontSize: 18,
+    fontWeight: "800",
     color: colors.primary,
     marginHorizontal: spacing.sm
   }

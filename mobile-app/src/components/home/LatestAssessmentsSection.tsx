@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React from "react";
 import {
   Image,
   Pressable,
@@ -7,52 +7,37 @@ import {
   View
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import {
   formatThaiShortDate,
   getRiskStatusLabel,
   useAssessmentHistoryStore
 } from "../../store/assessmentHistoryStore";
-import { useAnalysisStore } from "../../store/analysisStore";
 import type { TabParamList } from "../../navigation/types";
 import { setTabTransition } from "../../navigation/tabTransition";
+import { applyAssessmentRecordToStore } from "../../utils/openAssessmentRecord";
 import { colors } from "../../theme/colors";
 import { spacing } from "../../theme/spacing";
 
 export function LatestAssessmentsSection() {
   const navigation = useNavigation<BottomTabNavigationProp<TabParamList>>();
   const items = useAssessmentHistoryStore((s) => s.items);
-  const hydrate = useAssessmentHistoryStore((s) => s.hydrate);
   const latest = items[0] ?? null;
-
-  useFocusEffect(
-    useCallback(() => {
-      void hydrate();
-    }, [hydrate])
-  );
 
   const openRecord = (id: number) => {
     const record = items.find((item) => item.id === id);
     if (!record) return;
 
-    useAnalysisStore.setState({
-      photos: record.photos,
-      selectedPhotoIndex: 0,
-      form: record.form,
-      caseId: record.id,
-      result: record.result,
-      aiSource: record.aiSource,
-      aiNote: null
-    });
+    applyAssessmentRecordToStore(record);
 
     setTabTransition(1);
     navigation.navigate("Analysis", { screen: "AnalysisResult" });
   };
 
   const openProfile = () => {
-    setTabTransition(4);
-    navigation.navigate("Profile");
+    setTabTransition(3);
+    navigation.navigate("Profile", { screen: "AssessmentHistory" });
   };
 
   return (
@@ -113,8 +98,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between"
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: "700",
+    fontSize: 17,
+    fontWeight: "800",
     color: colors.primary
   },
   viewAllBtn: {
@@ -124,7 +109,7 @@ const styles = StyleSheet.create({
   },
   viewAllText: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: "700",
     color: colors.link
   },
   card: {

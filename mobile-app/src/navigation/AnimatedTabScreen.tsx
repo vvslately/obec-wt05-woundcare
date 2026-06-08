@@ -1,49 +1,49 @@
 import React, { useCallback, useRef } from "react";
-import { Animated, Dimensions, StyleSheet } from "react-native";
+import { Animated, StyleSheet } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
-import { getTabTransitionDirection } from "./tabTransition";
 
 gsap.registerPlugin(useGSAP);
-
-const SLIDE_OFFSET = Math.round(Dimensions.get("window").width * 0.28);
 
 type AnimatedTabScreenProps = {
   children: React.ReactNode;
 };
 
 export function AnimatedTabScreen({ children }: AnimatedTabScreenProps) {
-  const containerRef = useRef<React.ComponentRef<typeof Animated.View>>(null);
-  const translateX = useRef(new Animated.Value(0)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
 
   useFocusEffect(
     useCallback(() => {
-      const direction = getTabTransitionDirection();
-      const anim = { x: direction * SLIDE_OFFSET };
+      const anim = { o: 0 };
+      opacity.setValue(0);
 
-      translateX.setValue(direction * SLIDE_OFFSET);
-
-      const tween = gsap.to(anim, {
-        x: 0,
-        duration: 0.38,
-        ease: "power3.out",
+      const enterTween = gsap.to(anim, {
+        o: 1,
+        duration: 0.34,
+        ease: "power2.out",
         onUpdate: () => {
-          translateX.setValue(anim.x);
+          opacity.setValue(anim.o);
         }
       });
 
       return () => {
-        tween.kill();
+        enterTween.kill();
+        const exitAnim = { o: 1 };
+        gsap.to(exitAnim, {
+          o: 0,
+          duration: 0.24,
+          ease: "power2.in",
+          onUpdate: () => {
+            opacity.setValue(exitAnim.o);
+          }
+        });
       };
-    }, [translateX])
+    }, [opacity])
   );
 
   return (
-    <Animated.View
-      ref={containerRef}
-      style={[styles.container, { transform: [{ translateX }] }]}
-    >
+    <Animated.View style={[styles.container, { opacity }]}>
       {children}
     </Animated.View>
   );

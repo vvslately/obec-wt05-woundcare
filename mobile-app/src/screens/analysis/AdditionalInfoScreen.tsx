@@ -1,7 +1,5 @@
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
   Pressable,
   StyleSheet,
   Text,
@@ -36,8 +34,6 @@ export function AdditionalInfoScreen() {
     useNavigation<NativeStackNavigationProp<AnalysisStackParamList>>();
   const form = useAnalysisStore((s) => s.form);
   const updateForm = useAnalysisStore((s) => s.updateForm);
-  const submitAnalysis = useAnalysisStore((s) => s.submitAnalysis);
-  const [loading, setLoading] = useState(false);
   const [showLocations, setShowLocations] = useState(false);
 
   const toggleCondition = (item: string) => {
@@ -56,51 +52,29 @@ export function AdditionalInfoScreen() {
     updateForm({ conditions: [...withoutNone, item] });
   };
 
-  const handleSubmit = async () => {
-    if (loading) return;
-    setLoading(true);
-    const result = await submitAnalysis();
-    setLoading(false);
-
-    if (!result.ok) {
-      Alert.alert("วิเคราะห์ไม่สำเร็จ", result.message);
-      return;
-    }
-
-    if (result.message) {
-      Alert.alert("หมายเหตุ", result.message);
-    }
-
-    navigation.navigate("AnalysisResult");
+  const handleSubmit = () => {
+    navigation.navigate("Analyzing");
   };
 
   return (
     <>
       <StatusBar style="dark" />
       <ScreenShell
-        header={
-          <ScreenHeader
-            title="ข้อมูลเพิ่มเติม"
-            onBack={() => navigation.goBack()}
-          />
-        }
-        footer={
-          <ScreenFooter>
-            <Pressable
-              style={[styles.submitBtn, loading && styles.submitDisabled]}
-              onPress={handleSubmit}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color={colors.card} />
-              ) : (
+          header={
+            <ScreenHeader
+              title="ข้อมูลเพิ่มเติม"
+              onBack={() => navigation.goBack()}
+            />
+          }
+          footer={
+            <ScreenFooter>
+              <Pressable style={styles.submitBtn} onPress={handleSubmit}>
                 <Text style={styles.submitText}>ส่งให้ AI วิเคราะห์</Text>
-              )}
-            </Pressable>
-          </ScreenFooter>
-        }
-        contentStyle={styles.content}
-      >
+              </Pressable>
+            </ScreenFooter>
+          }
+          contentStyle={styles.content}
+        >
         <Text style={styles.sectionTitle}>ระดับความเจ็บปวด</Text>
         <SegmentControl
           options={PAIN_OPTIONS}
@@ -261,6 +235,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     minHeight: 52
   },
-  submitDisabled: { opacity: 0.7 },
   submitText: { color: colors.card, fontSize: 16, fontWeight: "700" }
 });

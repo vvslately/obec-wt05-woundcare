@@ -3,19 +3,20 @@ import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useScreenLayout } from "../hooks/useScreenLayout";
+import { useNotificationsSheetStore } from "../store/notificationsSheetStore";
+import { useNotificationBadgeCount } from "./notifications/NotificationSheet";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
 
 type TitleBarProps = {
-  notificationCount?: number;
   onNotificationPress?: () => void;
 };
 
-export function TitleBar({
-  notificationCount = 1,
-  onNotificationPress
-}: TitleBarProps) {
+export function TitleBar({ onNotificationPress }: TitleBarProps) {
   const { horizontal } = useScreenLayout();
+  const openNotifications = useNotificationsSheetStore((s) => s.open);
+  const notificationCount = useNotificationBadgeCount();
+  const handleNotificationPress = onNotificationPress ?? openNotifications;
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
@@ -35,7 +36,7 @@ export function TitleBar({
         <Pressable
           style={styles.notifBtn}
           hitSlop={8}
-          onPress={onNotificationPress}
+          onPress={handleNotificationPress}
         >
           <Ionicons
             name="notifications-outline"
@@ -81,8 +82,8 @@ const styles = StyleSheet.create({
   },
   title: {
     flexShrink: 1,
-    fontSize: 20,
-    fontWeight: "700"
+    fontSize: 21,
+    fontWeight: "800"
   },
   titleBrand: {
     color: colors.brand
@@ -110,7 +111,7 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: 10,
-    fontWeight: "700",
+    fontWeight: "800",
     color: colors.card
   }
 });

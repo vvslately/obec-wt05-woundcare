@@ -6,6 +6,11 @@ const {
   isOpenAiConfigured
 } = require("../services/openaiWoundAnalysis");
 const { saveWoundCaseWithAnalysis } = require("../services/saveWoundAnalysis");
+const {
+  listWoundCasesForUser,
+  getWoundCaseDetail,
+  deleteWoundCaseForUser
+} = require("../services/woundCaseQueries");
 
 const PAIN_LEVELS = new Set(["none", "mild", "moderate", "severe"]);
 const DURATIONS = new Set([
@@ -144,6 +149,73 @@ async function saveWoundCase(db, req, payload) {
 
 function createWoundsRouter({ db }) {
   const router = express.Router();
+
+  router.get("/wound-cases", requireAuth, async (req, res) => {
+    try {
+      const limit = Math.min(Number(req.query.limit) || 20, 50);
+      const items = await listWoundCasesForUser(db, req.auth.userId, limit);
+      return res.json({ items });
+    } catch (err) {
+      console.error(err);
+      if (isDbConnectionError(err)) {
+        return res.status(503).json({
+          error: "database_unavailable",
+          message: "Cannot connect to MySQL"
+        });
+      }
+      return res.status(500).json({ error: "internal_error" });
+    }
+  });
+
+  router.get("/wound-cases/:id", requireAuth, async (req, res) => {
+    try {
+      const caseId = Number(req.params.id);
+      if (!Number.isFinite(caseId)) {
+        return res.status(400).json({ error: "invalid_id" });
+      }
+
+      const detail = await getWoundCaseDetail(db, req.auth.userId, caseId);
+      if (!detail) {
+        return res.status(404).json({ error: "not_found" });
+      }
+
+      return res.json(detail);
+    } catch (err) {
+      console.error(err);
+      if (isDbConnectionError(err)) {
+        return res.status(503).json({
+          error: "database_unavailable",
+          message: "Cannot connect to MySQL"
+        });
+      }
+      return res.status(500).json({ error: "internal_error" });
+    }
+  });
+
+  router.delete("/wound-cases/:id", requireAuth, async (req, res) => {
+    try {
+      const caseId = Number(req.params.id);
+      if (!Number.isFinite(caseId)) {
+        return res.status(400).json({ error: "invalid_id" });
+      }
+
+      const deleted = await deleteWoundCaseForUser(db, req.auth.userId, caseId);
+      if (!deleted) {
+        return res.status(404).json({ error: "not_found" });
+      }
+
+      return res.json({ ok: true });
+    } catch (err) {
+      console.error(err);
+      if (isDbConnectionError(err)) {
+        return res.status(503).json({
+          error: "database_unavailable",
+          message: "Cannot connect to MySQL"
+        });
+      }
+      return res.status(500).json({ error: "internal_error" });
+    }
+  });
 
   router.post("/wound-cases/analyze", optionalAuth, async (req, res) => {
     try {

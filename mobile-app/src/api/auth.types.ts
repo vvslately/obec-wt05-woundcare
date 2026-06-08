@@ -36,6 +36,11 @@ export type RegisterPayload = {
   email: string;
   password: string;
   confirmPassword: string;
+  birthDate: string;
+  gender: "male" | "female";
+  weightKg: number;
+  heightCm: number;
+  bloodType: "A" | "B" | "AB" | "O" | "unknown";
   conditions: string[];
   acceptTerms: boolean;
 };
@@ -43,4 +48,14 @@ export type RegisterPayload = {
 export type LoginPayload = {
   email: string;
   password: string;
+};
+
+export type UpdateProfilePayload = {
+  fullName: string;
+  birthDate: string;
+  gender: "male" | "female";
+  weightKg: number;
+  heightCm: number;
+  bloodType: "A" | "B" | "AB" | "O" | "unknown";
+  conditions: string[];
 };

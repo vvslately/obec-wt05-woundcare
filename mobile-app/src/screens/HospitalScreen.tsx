@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Image,
   Linking,
   Pressable,
@@ -12,7 +13,12 @@ import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { ScreenHeader } from "../components/common/ScreenHeader";
 import { ScreenShell } from "../components/common/ScreenShell";
+import { HospitalMap } from "../components/hospital/HospitalMap";
+import { HospitalScreenSkeleton } from "../components/skeletons/ScreenSkeletons";
+import { useFirstLoadSkeleton } from "../hooks/useFirstLoadSkeleton";
 import { useScreenLayout } from "../hooks/useScreenLayout";
+import { saveHospitalRequest } from "../api/hospitals";
+import { getApiErrorMessage } from "../api/http";
 import { useAnalysisStore } from "../store/analysisStore";
 import { colors } from "../theme/colors";
 import { radius, spacing } from "../theme/spacing";
@@ -20,21 +26,40 @@ import { radius, spacing } from "../theme/spacing";
 export function HospitalScreen() {
   const hospitals = useAnalysisStore((s) => s.hospitals);
   const loadHospitals = useAnalysisStore((s) => s.loadHospitals);
-  const { isCompact } = useScreenLayout();
+  const { width, isCompact } = useScreenLayout();
+  const mapHeight = Math.round(width * 0.52);
   const [loading, setLoading] = React.useState(true);
+  const showSkeleton = useFirstLoadSkeleton(loading);
+  const [savingId, setSavingId] = React.useState<number | null>(null);
 
   useEffect(() => {
     loadHospitals().finally(() => setLoading(false));
   }, [loadHospitals]);
 
+  const handleSaveHospital = async (hospitalId: number) => {
+    if (savingId) return;
+    setSavingId(hospitalId);
+    try {
+      await saveHospitalRequest(hospitalId);
+      Alert.alert("บันทึกแล้ว", "เพิ่มโรงพยาบาลในโปรไฟล์ของคุณแล้ว");
+    } catch (error) {
+      Alert.alert("บันทึกไม่สำเร็จ", getApiErrorMessage(error));
+    } finally {
+      setSavingId(null);
+    }
+  };
+
   return (
     <>
       <StatusBar style="dark" />
-      <ScreenShell
-        header={
-          <ScreenHeader title="โรงพยาบาลใกล้ที่สุด" onInfoPress={() => {}} />
-        }
-      >
+      {showSkeleton ? (
+        <HospitalScreenSkeleton />
+      ) : (
+        <ScreenShell
+          header={
+            <ScreenHeader title="โรงพยาบาลใกล้ที่สุด" onInfoPress={() => {}} />
+          }
+        >
         <View style={styles.locationBanner}>
           <Ionicons name="location-outline" size={18} color={colors.brand} />
           <Text style={styles.locationText}>
@@ -42,9 +67,8 @@ export function HospitalScreen() {
           </Text>
         </View>
 
-        <View style={styles.mapPlaceholder}>
-          <Ionicons name="map-outline" size={42} color={colors.textSecondary} />
-          <Text style={styles.mapText}>แผนที่โรงพยาบาลใกล้เคียง</Text>
+        <View style={styles.mapWrap}>
+          <HospitalMap hospitals={hospitals} height={mapHeight} />
         </View>
 
         <View style={styles.filters}>
@@ -56,14 +80,11 @@ export function HospitalScreen() {
           </View>
         </View>
 
-        {loading ? (
-          <ActivityIndicator color={colors.brand} style={styles.loader} />
-        ) : (
-          hospitals.map((item) => (
-            <View
-              key={item.id}
-              style={[styles.card, isCompact && styles.cardCompact]}
-            >
+        {hospitals.map((item) => (
+          <View
+            key={item.id}
+            style={[styles.card, isCompact && styles.cardCompact]}
+          >
               <Image
                 source={{
                   uri: "https://images.unsplash.com/photo-1519494026892-80bbd122d47a?w=200&q=80"
@@ -101,15 +122,30 @@ export function HospitalScreen() {
                     />
                     <Text style={styles.navText}>นำทาง</Text>
                   </Pressable>
-                  <Pressable style={styles.detailBtn}>
-                    <Text style={styles.detailText}>ดูรายละเอียด</Text>
+                  <Pressable
+                    style={styles.saveBtn}
+                    onPress={() => handleSaveHospital(item.id)}
+                    disabled={savingId === item.id}
+                  >
+                    {savingId === item.id ? (
+                      <ActivityIndicator size="small" color={colors.brand} />
+                    ) : (
+                      <>
+                        <Ionicons
+                          name="bookmark-outline"
+                          size={14}
+                          color={colors.brand}
+                        />
+                        <Text style={styles.saveText}>บันทึก</Text>
+                      </>
+                    )}
                   </Pressable>
                 </View>
               </View>
             </View>
-          ))
-        )}
-      </ScreenShell>
+        ))}
+        </ScreenShell>
+      )}
     </>
   );
 }
@@ -125,20 +161,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md
   },
   locationText: { flex: 1, fontSize: 13, color: colors.infoText, lineHeight: 20 },
-  mapPlaceholder: {
-    aspectRatio: 16 / 9,
-    minHeight: 140,
-    maxHeight: 200,
-    borderRadius: radius.lg,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.sm,
+  mapWrap: {
     marginBottom: spacing.md
   },
-  mapText: { fontSize: 13, color: colors.textSecondary },
   filters: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, marginBottom: spacing.md },
   filterChip: {
     paddingHorizontal: 14,
@@ -149,7 +174,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card
   },
   filterText: { fontSize: 12, color: colors.primary, fontWeight: "600" },
-  loader: { marginTop: spacing.xl },
   card: {
     flexDirection: "row",
     backgroundColor: colors.card,
@@ -195,12 +219,17 @@ const styles = StyleSheet.create({
     paddingVertical: 6
   },
   navText: { fontSize: 11, color: colors.card, fontWeight: "600" },
-  detailBtn: {
+  saveBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.brand,
     borderRadius: radius.sm,
     paddingHorizontal: spacing.sm,
-    paddingVertical: 6
+    paddingVertical: 6,
+    minWidth: 72,
+    justifyContent: "center"
   },
-  detailText: { fontSize: 11, color: colors.primary, fontWeight: "600" }
+  saveText: { fontSize: 11, color: colors.brand, fontWeight: "600" }
 });

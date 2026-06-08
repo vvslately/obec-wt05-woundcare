@@ -26,7 +26,9 @@ import { spacing } from "../theme/spacing";
 import { useScreenLayout } from "../hooks/useScreenLayout";
 import {
   cropWoundPhotoFromGallery,
+  confirmDeletePhoto,
   pickWoundPhotoFromGallery,
+  showPhotoEditOptions,
   takeWoundPhoto
 } from "../utils/woundPhotoPicker";
 
@@ -41,11 +43,36 @@ export function AnalysisScreen() {
   const route = useRoute<UploadPhotoRoute>();
   const setPhotosInStore = useAnalysisStore((s) => s.setPhotos);
   const { horizontal } = useScreenLayout();
-  const [photos, setPhotos] = useState<string[]>([]);
+  const [photos, setPhotos] = useState<string[]>(
+    () => useAnalysisStore.getState().photos
+  );
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [busy, setBusy] = useState(false);
 
   const selectedUri = photos[selectedIndex] ?? null;
+
+  const removePhotoAt = useCallback((index: number) => {
+    setPhotos((prev) => {
+      const next = prev.filter((_, i) => i !== index);
+      setSelectedIndex((current) => {
+        if (next.length === 0) return 0;
+        if (current >= next.length) return next.length - 1;
+        if (current > index) return current - 1;
+        return current;
+      });
+      return next;
+    });
+  }, []);
+
+  const handleDeletePhoto = useCallback(
+    (index?: number) => {
+      const targetIndex = index ?? selectedIndex;
+      if (targetIndex < 0 || targetIndex >= photos.length) return;
+
+      confirmDeletePhoto(() => removePhotoAt(targetIndex));
+    },
+    [photos.length, removePhotoAt, selectedIndex]
+  );
 
   const addPhoto = useCallback((uri: string, replaceIndex?: number) => {
     if (replaceIndex !== undefined) {
@@ -71,11 +98,7 @@ export function AnalysisScreen() {
     try {
       const uri = await takeWoundPhoto();
       if (uri) {
-        if (selectedUri) {
-          addPhoto(uri, selectedIndex);
-        } else {
-          addPhoto(uri);
-        }
+        addPhoto(uri, selectedUri ? selectedIndex : undefined);
       }
     } finally {
       setBusy(false);
@@ -88,11 +111,7 @@ export function AnalysisScreen() {
     try {
       const uri = await pickWoundPhotoFromGallery();
       if (uri) {
-        if (selectedUri) {
-          addPhoto(uri, selectedIndex);
-        } else {
-          addPhoto(uri);
-        }
+        addPhoto(uri, selectedUri ? selectedIndex : undefined);
       }
     } finally {
       setBusy(false);
@@ -121,6 +140,22 @@ export function AnalysisScreen() {
     }
   }, [addPhoto, busy, selectedIndex, selectedUri]);
 
+  const handleEditPhoto = useCallback(() => {
+    if (busy || !selectedUri) return;
+
+    showPhotoEditOptions({
+      onRetake: () => {
+        void handleTakePhoto();
+      },
+      onPickFromGallery: () => {
+        void handlePickFromGallery();
+      },
+      onCrop: () => {
+        void handleCrop();
+      }
+    });
+  }, [busy, handleCrop, handlePickFromGallery, handleTakePhoto, selectedUri]);
+
   const handleConfirm = useCallback(() => {
     if (!selectedUri) {
       Alert.alert("ยังไม่มีรูป", "กรุณาถ่ายรูปหรืออัปโหลดจากคลังภาพก่อน");
@@ -139,9 +174,9 @@ export function AnalysisScreen() {
       navigation.setParams({ openPicker: undefined });
 
       if (action === "camera") {
-        handleTakePhoto();
+        void handleTakePhoto();
       } else {
-        handlePickFromGallery();
+        void handlePickFromGallery();
       }
     }, [handlePickFromGallery, handleTakePhoto, navigation, route.params?.openPicker])
   );
@@ -170,6 +205,8 @@ export function AnalysisScreen() {
             selectedIndex={selectedIndex}
             onSelectPhoto={setSelectedIndex}
             onAddPhoto={handleAddPhoto}
+            onEditPhoto={() => handleEditPhoto()}
+            onDeletePhoto={handleDeletePhoto}
           />
         </View>
       ) : (
@@ -185,7 +222,8 @@ export function AnalysisScreen() {
         disabled={busy}
         confirmDisabled={!selectedUri}
         onRetake={handleTakePhoto}
-        onCrop={handleCrop}
+        onEdit={handleEditPhoto}
+        onDelete={() => handleDeletePhoto()}
         onConfirm={handleConfirm}
       />
     </View>
@@ -208,7 +246,7 @@ function EmptyPhotoPicker({
   return (
     <View style={[styles.emptyWrap, { paddingHorizontal: horizontal }]}>
       <View style={styles.emptyFrame}>
-        <Ionicons name="camera-outline" size={48} color={colors.textSecondary} />
+        <Ionicons name="camera-outline" size={40} color={colors.textSecondary} />
         <Text style={styles.emptyTitle}>ยังไม่มีรูปแผล</Text>
         <Text style={styles.emptySubtitle}>
           ถ่ายรูปใหม่หรือเลือกจากคลังภาพ
@@ -249,8 +287,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md
   },
   emptyWrap: {
-    flex: 1,
-    paddingTop: spacing.sm
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.md
   },
   previewWrap: {
     flex: 1,
@@ -258,7 +296,6 @@ const styles = StyleSheet.create({
     minHeight: 0
   },
   emptyFrame: {
-    flex: 1,
     borderRadius: 20,
     borderWidth: 2,
     borderColor: colors.border,
@@ -267,18 +304,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 24,
-    gap: 10
+    paddingVertical: 24,
+    gap: 8
   },
   emptyTitle: {
     fontSize: 18,
     fontWeight: "700",
     color: colors.primary,
-    marginTop: 8
+    marginTop: 4
   },
   emptySubtitle: {
     fontSize: 13,
     color: colors.textSecondary,
-    marginBottom: 12,
+    marginBottom: 8,
     textAlign: "center"
   },
   emptyBtn: {
@@ -288,7 +326,7 @@ const styles = StyleSheet.create({
     gap: 8,
     width: "100%",
     borderRadius: 12,
-    paddingVertical: 14
+    paddingVertical: 12
   },
   emptyBtnPrimary: {
     backgroundColor: colors.brand

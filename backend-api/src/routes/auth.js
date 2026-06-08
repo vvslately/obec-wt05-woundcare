@@ -43,6 +43,20 @@ function mapConditions(conditions = []) {
   return flags;
 }
 
+function formatBirthDateForApi(value) {
+  if (value == null) return null;
+
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    const year = value.getFullYear();
+    const month = String(value.getMonth() + 1).padStart(2, "0");
+    const day = String(value.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
+  const match = String(value).trim().match(/^(\d{4}-\d{2}-\d{2})/);
+  return match ? match[1] : null;
+}
+
 function toPublicUser(row, medical = null) {
   const user = {
     id: row.id,
@@ -60,7 +74,7 @@ function toPublicUser(row, medical = null) {
 
   if (medical) {
     user.medicalProfile = {
-      birthDate: medical.birth_date,
+      birthDate: formatBirthDateForApi(medical.birth_date),
       gender: medical.gender,
       bloodType: medical.blood_type,
       weightKg: medical.weight_kg,
@@ -74,6 +88,62 @@ function toPublicUser(row, medical = null) {
   }
 
   return user;
+}
+
+const GENDERS = new Set(["male", "female"]);
+const BLOOD_TYPES = new Set(["A", "B", "AB", "O", "unknown"]);
+
+function parseBirthDate(value) {
+  const text = String(value || "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+    return { valid: false, birthDate: null };
+  }
+
+  const [year, month, day] = text.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return { valid: false, birthDate: null };
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  if (date > today) {
+    return { valid: false, birthDate: null };
+  }
+
+  const minDate = new Date(today.getFullYear() - 120, 0, 1);
+  if (date < minDate) {
+    return { valid: false, birthDate: null };
+  }
+
+  return { valid: true, birthDate: text };
+}
+
+function parseMedicalInput(body) {
+  const birth = parseBirthDate(body?.birthDate);
+  const weightKg = Number(body?.weightKg);
+  const heightCm = Number(body?.heightCm);
+  const gender = GENDERS.has(body?.gender) ? body.gender : null;
+  const bloodType = BLOOD_TYPES.has(body?.bloodType) ? body.bloodType : "unknown";
+
+  return {
+    birthDate: birth.birthDate,
+    gender,
+    bloodType,
+    weightKg: Number.isFinite(weightKg) && weightKg > 0 ? weightKg : null,
+    heightCm: Number.isFinite(heightCm) && heightCm > 0 ? heightCm : null,
+    birthDateValid: birth.valid,
+    weightValid: Number.isFinite(weightKg) && weightKg > 0 && weightKg <= 500,
+    heightValid: Number.isFinite(heightCm) && heightCm > 0 && heightCm <= 250,
+    bloodTypeValid: BLOOD_TYPES.has(body?.bloodType),
+    genderValid: GENDERS.has(body?.gender)
+  };
 }
 
 function buildConditionLabels(medical) {
@@ -146,6 +216,11 @@ function createAuthRouter({ db }) {
         password,
         confirmPassword,
         phone = null,
+        birthDate,
+        gender,
+        weightKg,
+        heightCm,
+        bloodType,
         conditions = [],
         acceptTerms = false
       } = req.body || {};
@@ -153,6 +228,13 @@ function createAuthRouter({ db }) {
       const normalizedEmail = normalizeEmail(email);
       const name = String(fullName || "").trim();
       const pass = String(password || "");
+      const medicalInput = parseMedicalInput({
+        birthDate,
+        gender,
+        weightKg,
+        heightCm,
+        bloodType
+      });
 
       if (!name || !normalizedEmail || !pass) {
         return res.status(400).json({
@@ -179,6 +261,41 @@ function createAuthRouter({ db }) {
         return res.status(400).json({
           error: "validation_error",
           message: "terms and privacy policy must be accepted"
+        });
+      }
+
+      if (!medicalInput.birthDateValid) {
+        return res.status(400).json({
+          error: "validation_error",
+          message: "birthDate is invalid"
+        });
+      }
+
+      if (!medicalInput.genderValid) {
+        return res.status(400).json({
+          error: "validation_error",
+          message: "gender is required"
+        });
+      }
+
+      if (!medicalInput.weightValid) {
+        return res.status(400).json({
+          error: "validation_error",
+          message: "weightKg is invalid"
+        });
+      }
+
+      if (!medicalInput.heightValid) {
+        return res.status(400).json({
+          error: "validation_error",
+          message: "heightCm is invalid"
+        });
+      }
+
+      if (!medicalInput.bloodTypeValid) {
+        return res.status(400).json({
+          error: "validation_error",
+          message: "bloodType is required"
         });
       }
 
@@ -211,10 +328,16 @@ function createAuthRouter({ db }) {
 
       await conn.execute(
         `INSERT INTO user_medical_profiles
-          (user_id, gender, blood_type, has_diabetes, has_hypertension, has_allergy, has_skin_disease)
-         VALUES (?, 'not_specified', 'unknown', ?, ?, ?, ?)`,
+          (user_id, birth_date, gender, blood_type, weight_kg, height_cm,
+           has_diabetes, has_hypertension, has_allergy, has_skin_disease)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           userId,
+          medicalInput.birthDate,
+          medicalInput.gender,
+          medicalInput.bloodType,
+          medicalInput.weightKg,
+          medicalInput.heightCm,
           flags.has_diabetes,
           flags.has_hypertension,
           flags.has_allergy,
@@ -339,6 +462,159 @@ function createAuthRouter({ db }) {
       return res.json({ user: toPublicUser(rows[0], medical) });
     } catch (err) {
       return respondDbError(res, err);
+    }
+  });
+
+  // PATCH /api/v1/auth/me
+  router.patch("/auth/me", requireAuth, async (req, res) => {
+    let conn;
+
+    try {
+      conn = await db.getConnection();
+    } catch (err) {
+      return respondDbError(res, err);
+    }
+
+    try {
+      const {
+        fullName,
+        birthDate,
+        gender,
+        weightKg,
+        heightCm,
+        bloodType,
+        conditions = []
+      } = req.body || {};
+
+      const name = String(fullName || "").trim();
+      const medicalInput = parseMedicalInput({
+        birthDate,
+        gender,
+        weightKg,
+        heightCm,
+        bloodType
+      });
+
+      if (!name) {
+        return res.status(400).json({
+          error: "validation_error",
+          message: "fullName is required"
+        });
+      }
+
+      if (!medicalInput.birthDateValid) {
+        return res.status(400).json({
+          error: "validation_error",
+          message: "birthDate is invalid"
+        });
+      }
+
+      if (!medicalInput.genderValid) {
+        return res.status(400).json({
+          error: "validation_error",
+          message: "gender is required"
+        });
+      }
+
+      if (!medicalInput.weightValid) {
+        return res.status(400).json({
+          error: "validation_error",
+          message: "weightKg is invalid"
+        });
+      }
+
+      if (!medicalInput.heightValid) {
+        return res.status(400).json({
+          error: "validation_error",
+          message: "heightCm is invalid"
+        });
+      }
+
+      if (!medicalInput.bloodTypeValid) {
+        return res.status(400).json({
+          error: "validation_error",
+          message: "bloodType is required"
+        });
+      }
+
+      const flags = mapConditions(conditions);
+
+      await conn.beginTransaction();
+
+      await conn.execute(
+        `UPDATE users SET full_name = ?, updated_at = NOW() WHERE id = ? AND status = 'active'`,
+        [name, req.auth.userId]
+      );
+
+      const [existingMedical] = await conn.execute(
+        `SELECT id FROM user_medical_profiles WHERE user_id = ? LIMIT 1`,
+        [req.auth.userId]
+      );
+
+      if (existingMedical.length) {
+        await conn.execute(
+          `UPDATE user_medical_profiles
+           SET birth_date = ?, gender = ?, blood_type = ?, weight_kg = ?, height_cm = ?,
+               has_diabetes = ?, has_hypertension = ?, has_allergy = ?, has_skin_disease = ?,
+               updated_at = NOW()
+           WHERE user_id = ?`,
+          [
+            medicalInput.birthDate,
+            medicalInput.gender,
+            medicalInput.bloodType,
+            medicalInput.weightKg,
+            medicalInput.heightCm,
+            flags.has_diabetes,
+            flags.has_hypertension,
+            flags.has_allergy,
+            flags.has_skin_disease,
+            req.auth.userId
+          ]
+        );
+      } else {
+        await conn.execute(
+          `INSERT INTO user_medical_profiles
+            (user_id, birth_date, gender, blood_type, weight_kg, height_cm,
+             has_diabetes, has_hypertension, has_allergy, has_skin_disease)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            req.auth.userId,
+            medicalInput.birthDate,
+            medicalInput.gender,
+            medicalInput.bloodType,
+            medicalInput.weightKg,
+            medicalInput.heightCm,
+            flags.has_diabetes,
+            flags.has_hypertension,
+            flags.has_allergy,
+            flags.has_skin_disease
+          ]
+        );
+      }
+
+      await conn.commit();
+
+      const [userRows] = await conn.execute(
+        `SELECT id, full_name, username, email, phone, avatar_url, role, status, created_at, last_login_at
+         FROM users WHERE id = ? LIMIT 1`,
+        [req.auth.userId]
+      );
+
+      if (!userRows.length) {
+        return res.status(404).json({ error: "not_found", message: "User not found" });
+      }
+
+      const medical = await fetchMedicalProfile(
+        { query: (...args) => conn.execute(...args) },
+        req.auth.userId
+      );
+
+      return res.json({ user: toPublicUser(userRows[0], medical) });
+    } catch (err) {
+      await conn.rollback().catch(() => {});
+      return respondDbError(res, err);
+    } finally {
+      conn.release();
     }
   });
 

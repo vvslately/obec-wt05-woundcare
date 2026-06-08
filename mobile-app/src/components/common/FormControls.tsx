@@ -138,6 +138,7 @@ const styles = StyleSheet.create({
   yesNoLabel: {
     fontSize: 14,
     color: colors.primary,
+    fontWeight: "600",
     flex: 1
   },
   yesNoButtons: {

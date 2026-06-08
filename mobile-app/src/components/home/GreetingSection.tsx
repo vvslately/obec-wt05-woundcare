@@ -24,16 +24,17 @@ export function GreetingSection({ name }: GreetingSectionProps) {
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 20
+    marginBottom: 0
   },
   greeting: {
-    fontSize: 22,
-    fontWeight: "700",
+    fontSize: 23,
+    fontWeight: "800",
     color: colors.primary,
     marginBottom: 4
   },
   subtitle: {
     fontSize: 14,
+    fontWeight: "500",
     color: colors.textSecondary
   }
 });

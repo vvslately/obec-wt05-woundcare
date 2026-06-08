@@ -21,9 +21,12 @@ type AnalysisState = {
   result: AnalysisResultData | null;
   aiSource: string | null;
   aiNote: string | null;
+  aiModel: string | null;
   hospitals: HospitalItem[];
   setPhotos: (photos: string[]) => void;
   setSelectedPhotoIndex: (index: number) => void;
+  removePhotoAt: (index: number) => void;
+  replacePhotoAt: (index: number, uri: string) => void;
   updateForm: (patch: Partial<AnalysisForm>) => void;
   resetFlow: () => void;
   submitAnalysis: () => Promise<
@@ -40,6 +43,7 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
   result: null,
   aiSource: null,
   aiNote: null,
+  aiModel: null,
   hospitals: [],
 
   setPhotos: (photos) =>
@@ -49,6 +53,38 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
     }),
 
   setSelectedPhotoIndex: (selectedPhotoIndex) => set({ selectedPhotoIndex }),
+
+  removePhotoAt: (index) => {
+    const { photos, caseId, selectedPhotoIndex } = get();
+    if (index < 0 || index >= photos.length) return;
+
+    const next = photos.filter((_, i) => i !== index);
+    const nextIndex =
+      next.length === 0
+        ? 0
+        : selectedPhotoIndex >= next.length
+          ? next.length - 1
+          : selectedPhotoIndex > index
+            ? selectedPhotoIndex - 1
+            : selectedPhotoIndex;
+
+    set({ photos: next, selectedPhotoIndex: nextIndex });
+
+    if (caseId) {
+      void useAssessmentHistoryStore
+        .getState()
+        .updateRecordPhotos(caseId, next);
+    }
+  },
+
+  replacePhotoAt: (index, uri) => {
+    const { photos } = get();
+    if (index < 0 || index >= photos.length) return;
+
+    const next = [...photos];
+    next[index] = uri;
+    set({ photos: next, selectedPhotoIndex: index });
+  },
 
   updateForm: (patch) =>
     set((state) => ({
@@ -63,7 +99,8 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
       caseId: null,
       result: null,
       aiSource: null,
-      aiNote: null
+      aiNote: null,
+      aiModel: null
     }),
 
   submitAnalysis: async () => {
@@ -76,7 +113,8 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
         caseId: data.caseId,
         result: data.analysis,
         aiSource: data.meta?.aiSource ?? null,
-        aiNote: data.meta?.aiNote ?? null
+        aiNote: data.meta?.aiNote ?? null,
+        aiModel: data.meta?.aiModel ?? null
       });
 
       await useAssessmentHistoryStore.getState().addRecord({
@@ -88,7 +126,9 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
         form,
         result: data.analysis,
         photos,
-        aiSource: data.meta?.aiSource ?? null
+        aiSource: data.meta?.aiSource ?? null,
+        aiModel: data.meta?.aiModel ?? null,
+        aiNote: data.meta?.aiNote ?? null
       });
 
       if (data.meta?.aiSource === "rule_based_fallback") {
@@ -107,7 +147,8 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
         caseId: offlineId,
         result: DEMO_ANALYSIS,
         aiSource: "offline_demo",
-        aiNote: "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ ใช้ข้อมูลตัวอย่าง"
+        aiNote: "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ ใช้ข้อมูลตัวอย่าง",
+        aiModel: null
       });
 
       await useAssessmentHistoryStore.getState().addRecord({

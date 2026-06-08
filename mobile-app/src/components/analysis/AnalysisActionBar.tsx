@@ -9,7 +9,8 @@ type AnalysisActionBarProps = {
   disabled?: boolean;
   confirmDisabled?: boolean;
   onRetake?: () => void;
-  onCrop?: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
   onConfirm?: () => void;
 };
 
@@ -17,7 +18,8 @@ export function AnalysisActionBar({
   disabled = false,
   confirmDisabled = false,
   onRetake,
-  onCrop,
+  onEdit,
+  onDelete,
   onConfirm
 }: AnalysisActionBarProps) {
   const { horizontal, isCompact } = useScreenLayout();
@@ -38,11 +40,24 @@ export function AnalysisActionBar({
           styles.secondaryBtn,
           (disabled || confirmDisabled) && styles.btnDisabled
         ]}
-        onPress={onCrop}
+        onPress={onEdit}
         disabled={disabled || confirmDisabled}
       >
-        <Ionicons name="crop-outline" size={22} color={colors.primary} />
-        {!isCompact && <Text style={styles.secondaryText}>ครอบรูป</Text>}
+        <Ionicons name="create-outline" size={22} color={colors.primary} />
+        {!isCompact && <Text style={styles.secondaryText}>แก้ไข</Text>}
+      </Pressable>
+
+      <Pressable
+        style={[
+          styles.secondaryBtn,
+          styles.deleteBtn,
+          (disabled || confirmDisabled) && styles.btnDisabled
+        ]}
+        onPress={onDelete}
+        disabled={disabled || confirmDisabled}
+      >
+        <Ionicons name="trash-outline" size={22} color={colors.notification} />
+        {!isCompact && <Text style={styles.deleteText}>ลบ</Text>}
       </Pressable>
 
       <Pressable
@@ -83,6 +98,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
     color: colors.primary
+  },
+  deleteBtn: {
+    flex: 0.85
+  },
+  deleteText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.notification
   },
   primaryBtn: {
     flex: 1.2,

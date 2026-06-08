@@ -50,8 +50,8 @@ const styles = StyleSheet.create({
     right: 12
   },
   title: {
-    fontSize: 20,
-    fontWeight: "700",
+    fontSize: 21,
+    fontWeight: "800",
     color: colors.card,
     marginBottom: 6
   },
@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
   },
   cameraBtnText: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: "700",
     color: colors.card
   },
   galleryBtn: {
@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
   },
   galleryBtnText: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: "700",
     color: colors.brand
   }
 });

@@ -8,7 +8,7 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/logo.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -16,6 +16,7 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.obec.thiefdetector",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -35,7 +36,9 @@
           "photosPermission": "แอปต้องการเข้าถึงคลังภาพเพื่ออัปโหลดรูปแผล",
           "cameraPermission": "แอปต้องการใช้กล้องเพื่อถ่ายรูปแผล"
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker",
+      "expo-font"
     ],
     "extra": {
       "BACKEND_URL": "http://localhost:4000",

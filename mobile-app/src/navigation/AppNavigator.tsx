@@ -1,9 +1,10 @@
-import React, { useEffect } from "react";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import { StyleSheet, View } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { AuthScreen } from "../screens/AuthScreen";
+import { AuthScreenSkeleton } from "../components/skeletons/ScreenSkeletons";
+import { AuthBackground } from "../components/profile/AuthBackground";
 import { useAuthStore } from "../store/authStore";
-import { colors } from "../theme/colors";
 import { TabRoutes } from "./TabNavigator";
 
 export function AppNavigator() {
@@ -17,9 +18,11 @@ export function AppNavigator() {
 
   if (isHydrating) {
     return (
-      <View style={styles.loading}>
-        <ActivityIndicator size="large" color={colors.brand} />
-      </View>
+      <AuthBackground>
+        <View style={styles.loading}>
+          <AuthScreenSkeleton />
+        </View>
+      </AuthBackground>
     );
   }
 
@@ -33,8 +36,7 @@ export function AppNavigator() {
 const styles = StyleSheet.create({
   loading: {
     flex: 1,
-    alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.background
+    backgroundColor: "transparent"
   }
 });

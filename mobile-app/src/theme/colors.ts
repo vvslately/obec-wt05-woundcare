@@ -5,7 +5,7 @@ export const colors = {
   accent: "#1FA89A",
   success: "#28A745",
   card: "#FFFFFF",
-  textSecondary: "#6B7A90",
+  textSecondary: "#556070",
   link: "#4A7FD4",
   notification: "#E53935",
   statusCardBg: "#E8EDF4",

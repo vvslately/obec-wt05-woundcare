@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
-import { fetchMeRequest, loginRequest, signupRequest } from "../api/auth";
+import { fetchMeRequest, loginRequest, signupRequest, updateProfileRequest } from "../api/auth";
 import { getApiErrorMessage, setHttpAuthToken } from "../api/http";
 import { mapApiUserToProfile } from "../utils/mapUser";
 
@@ -11,7 +11,7 @@ export type UserProfile = {
   name: string;
   email: string;
   userType: string;
-  age: number;
+  birthDate: string | null;
   gender: string;
   weight: number;
   height: number;
@@ -24,6 +24,21 @@ export type RegisterInput = {
   email: string;
   password: string;
   confirmPassword: string;
+  birthDate: string;
+  gender: "male" | "female" | "";
+  weightKg: string;
+  heightCm: string;
+  bloodType: "A" | "B" | "AB" | "O" | "unknown" | "";
+  conditions: string[];
+};
+
+export type UpdateProfileInput = {
+  name: string;
+  birthDate: string;
+  gender: "male" | "female" | "";
+  weightKg: string;
+  heightCm: string;
+  bloodType: "A" | "B" | "AB" | "O" | "unknown" | "";
   conditions: string[];
 };
 
@@ -35,6 +50,7 @@ type AuthState = {
   isHydrating: boolean;
   login: (email: string, password: string, remember?: boolean) => Promise<AuthResult>;
   register: (input: RegisterInput) => Promise<AuthResult>;
+  updateProfile: (input: UpdateProfileInput) => Promise<AuthResult>;
   restoreSession: () => Promise<void>;
   logout: () => Promise<void>;
 };
@@ -98,12 +114,45 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       return { ok: false, message: "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร" };
     }
 
+    const weightKg = Number(input.weightKg);
+    const heightCm = Number(input.heightCm);
+
+    if (!input.birthDate || !/^\d{4}-\d{2}-\d{2}$/.test(input.birthDate)) {
+      return { ok: false, message: "กรุณาเลือกวันเกิด" };
+    }
+
+    const birth = new Date(input.birthDate);
+    if (Number.isNaN(birth.getTime()) || birth > new Date()) {
+      return { ok: false, message: "วันเกิดไม่ถูกต้อง" };
+    }
+
+    if (!input.gender) {
+      return { ok: false, message: "กรุณาเลือกเพศ" };
+    }
+
+    if (!Number.isFinite(weightKg) || weightKg <= 0 || weightKg > 500) {
+      return { ok: false, message: "กรุณากรอกน้ำหนักที่ถูกต้อง (kg)" };
+    }
+
+    if (!Number.isFinite(heightCm) || heightCm <= 0 || heightCm > 250) {
+      return { ok: false, message: "กรุณากรอกส่วนสูงที่ถูกต้อง (cm)" };
+    }
+
+    if (!input.bloodType) {
+      return { ok: false, message: "กรุณาเลือกกรุ๊ปเลือด" };
+    }
+
     try {
       const data = await signupRequest({
         fullName: name,
         email,
         password: input.password,
         confirmPassword: input.confirmPassword,
+        birthDate: input.birthDate,
+        gender: input.gender,
+        weightKg,
+        heightCm,
+        bloodType: input.bloodType,
         conditions: input.conditions,
         acceptTerms: true
       });
@@ -115,6 +164,59 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       setHttpAuthToken(data.token);
 
       await persistToken(data.token);
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, message: getApiErrorMessage(error) };
+    }
+  },
+
+  updateProfile: async (input) => {
+    const name = input.name.trim();
+
+    if (!name) {
+      return { ok: false, message: "กรุณากรอกชื่อ-นามสกุล" };
+    }
+
+    if (!input.birthDate || !/^\d{4}-\d{2}-\d{2}$/.test(input.birthDate)) {
+      return { ok: false, message: "กรุณาเลือกวันเกิด" };
+    }
+
+    const birth = new Date(input.birthDate);
+    if (Number.isNaN(birth.getTime()) || birth > new Date()) {
+      return { ok: false, message: "วันเกิดไม่ถูกต้อง" };
+    }
+
+    if (!input.gender) {
+      return { ok: false, message: "กรุณาเลือกเพศ" };
+    }
+
+    const weightKg = Number(input.weightKg);
+    const heightCm = Number(input.heightCm);
+
+    if (!Number.isFinite(weightKg) || weightKg <= 0 || weightKg > 500) {
+      return { ok: false, message: "กรุณากรอกน้ำหนักที่ถูกต้อง (kg)" };
+    }
+
+    if (!Number.isFinite(heightCm) || heightCm <= 0 || heightCm > 250) {
+      return { ok: false, message: "กรุณากรอกส่วนสูงที่ถูกต้อง (cm)" };
+    }
+
+    if (!input.bloodType) {
+      return { ok: false, message: "กรุณาเลือกกรุ๊ปเลือด" };
+    }
+
+    try {
+      const apiUser = await updateProfileRequest({
+        fullName: name,
+        birthDate: input.birthDate,
+        gender: input.gender,
+        weightKg,
+        heightCm,
+        bloodType: input.bloodType,
+        conditions: input.conditions
+      });
+
+      set({ user: mapApiUserToProfile(apiUser) });
       return { ok: true };
     } catch (error) {
       return { ok: false, message: getApiErrorMessage(error) };
